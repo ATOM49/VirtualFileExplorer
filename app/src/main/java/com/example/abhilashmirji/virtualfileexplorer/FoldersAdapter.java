@@ -85,19 +85,15 @@ public class FoldersAdapter extends RecyclerView.Adapter<FoldersAdapter.FolderVi
             if (!mMultiSelector.isSelectable()) {
                 mMultiSelector.setSelectable(true);
                 mMultiSelector.setSelected(FolderViewHolder.this, true);
-                folderInterface.changeFabAction("delete", (FolderObject)view.getTag());
+                folderInterface.changeFabAction("delete", (FolderObject) view.getTag());
                 return true;
-            } else {
-                folderInterface.changeFabAction("add", (FolderObject) view.getTag());
             }
             return false;
         }
 
         @Override
         public void onClick(View v) {
-            if (!mMultiSelector.isSelectable()) {
-                folderInterface.openFolder((FolderObject) v.getTag());
-            }
+            folderInterface.openFolder((FolderObject) v.getTag());
         }
     }
 
