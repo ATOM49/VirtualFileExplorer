@@ -19,20 +19,20 @@ import android.widget.Button;
 public class EditTextDialogFragment extends DialogFragment implements View.OnClickListener {
 
     private static FileCRUD mFileCRUD;
-    private static String mRootDirectory;
+    private static FolderObject mParentFolder;
     private TextInputEditText mEditText;
     private TextInputLayout mEditTextLayout;
 
     public EditTextDialogFragment() {
     }
 
-    public static EditTextDialogFragment newInstance(String title, FileCRUD fileCRUD, String tag) {
+    public static EditTextDialogFragment newInstance(String title, FileCRUD fileCRUD, FolderObject tag) {
         EditTextDialogFragment frag = new EditTextDialogFragment();
         Bundle args = new Bundle();
         args.putString("title", title);
         frag.setArguments(args);
         mFileCRUD = fileCRUD;
-        mRootDirectory = tag;
+        mParentFolder = tag;
         return frag;
     }
 
@@ -65,7 +65,7 @@ public class EditTextDialogFragment extends DialogFragment implements View.OnCli
             case R.id.ok:
                 String newFolderName = mEditText.getText().toString();
                 if (!TextUtils.isEmpty(newFolderName)) {
-                    mFileCRUD.createNewFolder(mRootDirectory, mEditText.getText().toString());
+                    mFileCRUD.createNewFolder(new FolderObject(mEditText.getText().toString(), mParentFolder));
                     dismiss();
                 } else {
                     mEditTextLayout.setError("Enter a folder name");

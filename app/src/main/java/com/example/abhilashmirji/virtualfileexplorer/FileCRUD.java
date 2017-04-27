@@ -5,10 +5,8 @@ package com.example.abhilashmirji.virtualfileexplorer;
  */
 
 public interface FileCRUD {
-    void createNewFolder(String root, String newFolder);
+    void createNewFolder(FolderObject newFolder);
 
-    void renameFolder(String oldName, String newName);
-
-    void deleteFolder(String folderName);
+    void deleteFolder(FolderObject folderName);
 
 }

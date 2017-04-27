@@ -11,95 +11,101 @@ import android.view.View;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements FileCRUD, FoldersAdapter.FolderInterface {
 
     private static final String FOLDER_STRUCTURE = "folder_structure";
     // The folders are maintained in a ordered list in which the hasmap defines the folder name and
     // the Arraylist of all subfolders
-    List<HashMap<String, ArrayList<String>>> folderStructure = new ArrayList<>();
-    int activePosition = 0;
+    HashMap<FolderObject, ArrayList<FolderObject>> folderStructure = new HashMap<>();
+    FolderObject activeFolderObject;
     private Toolbar mToolbar;
     private FoldersAdapter mFoldersAdapter;
     private FloatingActionButton mFolderAction;
+    private View.OnClickListener backClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            openFolder(activeFolderObject.parentFile);
+        }
+    };
+    private boolean isInDeleteMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //initialize the root directory
-        HashMap<String, ArrayList<String>> rootDirectory = new HashMap<>();
-        rootDirectory.put("root", new ArrayList<String>());
-        folderStructure.add(rootDirectory);
+        FolderObject rootFileObject = new FolderObject("root", null);
+        activeFolderObject = rootFileObject;
+        folderStructure.put(rootFileObject, new ArrayList<FolderObject>());
         setupViews();
-        createNewFolder("root", "Test");
     }
 
     private void setupViews() {
         mToolbar = (Toolbar) findViewById(R.id.toolbar);
+        mToolbar.setNavigationIcon(R.drawable.ic_folder_open);
+        mToolbar.setTitle("root");
         setSupportActionBar(mToolbar);
         mFolderAction = (FloatingActionButton) findViewById(R.id.folder_action);
-        mFolderAction.setTag("root");
+        mFolderAction.setTag(null);
         mFolderAction.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                EditTextDialogFragment editTextDialogFragment
-                        = EditTextDialogFragment.newInstance("Create Folder", MainActivity.this, (String) view.getTag());
-                editTextDialogFragment.show(getSupportFragmentManager(), "FragmentAddFolder");
-
+                if(view.getTag()!=null) {
+                    deleteFolder((FolderObject) view.getTag());
+                } else {
+                    EditTextDialogFragment editTextDialogFragment
+                            = EditTextDialogFragment.newInstance("Create Folder", MainActivity.this, activeFolderObject);
+                    editTextDialogFragment.show(getSupportFragmentManager(), "FragmentAddFolder");
+                }
             }
         });
         RecyclerView fileExplorer = (RecyclerView) findViewById(R.id.file_explorer);
         fileExplorer.setLayoutManager(new LinearLayoutManager(this));
-        mFoldersAdapter = new FoldersAdapter(this, folderStructure.get(activePosition).get("root"), this);
+        mFoldersAdapter = new FoldersAdapter(this, folderStructure.get(activeFolderObject), this, activeFolderObject);
         fileExplorer.setAdapter(mFoldersAdapter);
     }
 
     @Override
-    public void createNewFolder(String root, String newFolderName) {
-        HashMap<String, ArrayList<String>> activeFolder = folderStructure.get(activePosition);
-        if (activeFolder.containsKey(root)) {
-            ArrayList<String> subFolders = activeFolder.get(root);
-            //update subdirectories
-            subFolders.add(newFolderName);
-            mFoldersAdapter.itemAdded(newFolderName);
-            //Update the present folder structure
-            HashMap<String, ArrayList<String>> newEntry = new HashMap<>();
-            newEntry.put(newFolderName, new ArrayList<String>());
-            folderStructure.add(newEntry);
+    public void createNewFolder(FolderObject newFolderObject) {
+        ArrayList<FolderObject> subFolders = folderStructure.get(activeFolderObject);
+        subFolders.add(newFolderObject);
+        folderStructure.put(newFolderObject, new ArrayList<FolderObject>());
+        mFoldersAdapter.itemAdded(newFolderObject);
+    }
+
+    @Override
+    public void deleteFolder(FolderObject folderName) {
+        ArrayList<FolderObject> subFolders = folderStructure.get(activeFolderObject);
+        subFolders.remove(folderName);
+        folderStructure.remove(folderName);
+        mFoldersAdapter.itemRemoved(folderName);
+        changeFabAction("add", null);
+    }
+
+    @Override
+    public void openFolder(FolderObject name) {
+        if (name.isRoot()) {
+            mToolbar.setNavigationIcon(R.drawable.ic_folder_open);
+            mToolbar.setNavigationOnClickListener(null);
+        } else {
+            mToolbar.setNavigationIcon(android.R.drawable.ic_media_previous);
+            mToolbar.setNavigationOnClickListener(backClickListener);
         }
+        ArrayList<FolderObject> newFolders = folderStructure.get(name);
+        mFoldersAdapter.populateFolders(newFolders);
+        activeFolderObject = name;
+        mToolbar.setTitle(name.fileName);
     }
 
     @Override
-    public void renameFolder(String oldName, String newName) {
-
-    }
-
-    @Override
-    public void deleteFolder(String folderName) {
-
-    }
-
-    @Override
-    public void openFolder(String name) {
-        for (int i = 0; i < folderStructure.size(); i++) {
-            if (folderStructure.get(i).keySet().contains(name)) {
-                activePosition = i;
-                mFoldersAdapter.populateFolders(folderStructure.get(i).get(name));
-            }
-        }
-        HashMap<String, ArrayList<String>> activeFolder = folderStructure.get(activePosition);
-        mFolderAction.setTag(name);
-        mToolbar.setTitle(name);
-    }
-
-    @Override
-    public void changeFabAction(String action) {
+    public void changeFabAction(String action, FolderObject tag) {
         if (action == "delete") {
             mFolderAction.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_delete));
+            mFolderAction.setTag(tag);
         } else {
             mFolderAction.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_create_new_folder));
+            mFolderAction.setTag(null);
         }
 
     }

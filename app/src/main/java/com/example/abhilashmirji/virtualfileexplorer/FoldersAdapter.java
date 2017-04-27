@@ -20,17 +20,19 @@ import java.util.ArrayList;
 public class FoldersAdapter extends RecyclerView.Adapter<FoldersAdapter.FolderViewHolder> {
 
     private final Context context;
+    private final FolderObject parentFolderObject;
     private MultiSelector mMultiSelector = new SingleSelector();
-    private ArrayList<String> folders = new ArrayList<>();
+    private ArrayList<FolderObject> folders = new ArrayList<>();
     private FolderInterface folderInterface;
 
-    public FoldersAdapter(Context context, ArrayList<String> folders, FolderInterface folderInterface) {
+    public FoldersAdapter(Context context, ArrayList<FolderObject> folders, FolderInterface folderInterface, FolderObject parentFolderObject) {
         this.context = context;
         this.folderInterface = folderInterface;
         this.folders = folders;
+        this.parentFolderObject = parentFolderObject;
     }
 
-    public void populateFolders(ArrayList<String> folders) {
+    public void populateFolders(ArrayList<FolderObject> folders) {
         this.folders = folders;
         notifyDataSetChanged();
     }
@@ -44,17 +46,25 @@ public class FoldersAdapter extends RecyclerView.Adapter<FoldersAdapter.FolderVi
 
     @Override
     public void onBindViewHolder(FolderViewHolder holder, int position) {
-        holder.folderNameText.setText(folders.get(position));
+        holder.folderNameText.setText(folders.get(position).fileName);
+        holder.itemView.setTag(folders.get(position));
     }
+
 
     @Override
     public int getItemCount() {
         return folders.size();
     }
 
-    public void itemAdded(String newFolderName) {
+    public void itemAdded(FolderObject newFolderName) {
         folders.add(newFolderName);
-        notifyItemInserted(getItemCount());
+        notifyItemInserted(folders.size() - 1);
+    }
+
+    public void itemRemoved(FolderObject folderName) {
+        folders.remove(folderName);
+        //This can be improved by having a reference to the position of the deleted value
+        notifyDataSetChanged();
     }
 
 
@@ -66,6 +76,7 @@ public class FoldersAdapter extends RecyclerView.Adapter<FoldersAdapter.FolderVi
             super(itemView, mMultiSelector);
             folderNameText = (TextView) itemView.findViewById(R.id.folder_item_name_text);
             itemView.setLongClickable(true);
+            itemView.setOnLongClickListener(this);
             itemView.setOnClickListener(this);
         }
 
@@ -74,24 +85,25 @@ public class FoldersAdapter extends RecyclerView.Adapter<FoldersAdapter.FolderVi
             if (!mMultiSelector.isSelectable()) {
                 mMultiSelector.setSelectable(true);
                 mMultiSelector.setSelected(FolderViewHolder.this, true);
-                folderInterface.changeFabAction("delete");
+                folderInterface.changeFabAction("delete", (FolderObject)view.getTag());
                 return true;
             } else {
-                folderInterface.changeFabAction("add");
+                folderInterface.changeFabAction("add", (FolderObject) view.getTag());
             }
             return false;
         }
 
         @Override
         public void onClick(View v) {
-            String folderName = ((TextView) v.findViewById(R.id.folder_item_name_text)).getText().toString();
-            folderInterface.openFolder(folderName);
+            if (!mMultiSelector.isSelectable()) {
+                folderInterface.openFolder((FolderObject) v.getTag());
+            }
         }
     }
 
     public interface FolderInterface {
-        void openFolder(String name);
+        void openFolder(FolderObject name);
 
-        void changeFabAction(String action);
+        void changeFabAction(String action, FolderObject tag);
     }
 }
